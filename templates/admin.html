@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ParkWise Admin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#f4f7fb;color:#1e293b;padding:22px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+header a{color:#2563eb;text-decoration:none;font-weight:bold}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+nav button{background:#fff;color:#475569;padding:10px 15px;box-shadow:0 2px 6px #0000000d}
+nav button.on{background:#14243b;color:#fff}
+.badge{background:#ef4444;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;margin-left:5px}
+.tab{display:none}.tab.on{display:block}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:13px;margin-bottom:18px}
+.card,.panel{background:#fff;border-radius:12px;padding:18px;box-shadow:0 3px 12px #0000000d}
+.card p{color:#64748b;font-size:12px}.card h2{font-size:24px;margin-top:6px}
+.panel{margin-bottom:18px;overflow-x:auto}.panel h3{margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.cb{position:relative;height:250px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px;border-bottom:1px solid #e2e8f0;white-space:nowrap}th{color:#64748b}
+button{cursor:pointer;border:none;border-radius:6px;padding:7px 12px;font-weight:bold;background:#e2e8f0;margin-right:4px}
+button.pri{background:#2563eb;color:#fff}button.bad{background:#fee2e2;color:#b91c1c}
+input,select{padding:8px;border:1px solid #cbd5e1;border-radius:6px;margin-right:6px}
+label{font-size:12px;color:#64748b;display:block;margin:10px 0 3px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.tag{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:bold}
+.available,.completed,.paid,.success,.info{background:#dcfce7;color:#166534}
+.occupied,.cancelled,.failed,.warning{background:#fee2e2;color:#991b1b}
+.reserved,.active{background:#dbeafe;color:#1e40af}.pending{background:#fef3c7;color:#92400e}
+.refunded,.expired,.none{background:#e2e8f0;color:#475569}
+.unread{font-weight:bold}.note{color:#94a3b8;font-size:12px}
+#msg{color:#dc2626;margin-bottom:12px}
+#toast{position:fixed;right:20px;bottom:20px;background:#14243b;color:#fff;padding:12px 18px;border-radius:8px;display:none;z-index:9}
+#toast.bad{background:#b91c1c}
+</style>
+</head>
+<body>
+<header><h1 id="lot">⚙ ParkWise Admin</h1><a href="/">← Back to app</a></header>
+<nav id="tabs"></nav>
+<div id="msg"></div>
+
+<section class="tab" id="t-dash">
+ <div class="stats" id="stats"></div>
+ <div class="grid">
+  <div class="panel"><h3>Slot Occupancy</h3><div class="cb"><canvas id="c1"></canvas></div></div>
+  <div class="panel"><h3>Bookings by Hour</h3><div class="cb"><canvas id="c2"></canvas></div></div>
+ </div>
+</section>
+
+<section class="tab" id="t-parking">
+ <div class="panel"><h3>Add Parking Slots</h3>
+  <div class="row"><input type="number" id="addCount" value="1" min="1" max="20" style="width:80px">
+  <select id="addZone"></select><button class="pri" onclick="addSlots()">Add slots</button>
+  <span class="note">New slots get the next free number (P11, P12...).</span></div></div>
+ <div class="panel"><h3>Manage Slots</h3>
+  <table><thead><tr><th>Slot</th><th>Status</th><th>Zone</th><th>Booked by</th><th>Actions</th></tr></thead><tbody id="slotsBody"></tbody></table></div>
+</section>
+
+<section class="tab" id="t-users">
+ <div class="panel"><h3>Registered Users</h3>
+  <table><thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Registered</th><th>Bookings</th><th>Spent</th><th>Status</th><th>Actions</th></tr></thead><tbody id="usersBody"></tbody></table></div>
+</section>
+
+<section class="tab" id="t-bookings">
+ <div class="panel"><h3>All Bookings</h3>
+  <div class="row"><select id="bStatus" onchange="refresh()"><option value="">All statuses</option><option>pending</option><option>active</option><option>completed</option><option>cancelled</option><option>expired</option></select>
+  <input id="bSearch" placeholder="Search user, vehicle, slot, txn" style="width:250px" oninput="refresh()"></div>
+  <table><thead><tr><th>#</th><th>User</th><th>Slot</th><th>Vehicle</th><th>Hrs</th><th>Amount</th><th>Start</th><th>Booking</th><th>Payment</th><th>Method</th><th>Txn ID</th><th>Actions</th></tr></thead><tbody id="bookBody"></tbody></table></div>
+</section>
+
+<section class="tab" id="t-revenue">
+ <div class="stats" id="revStats"></div>
+ <div class="panel"><h3>Revenue (₹)</h3>
+  <div class="row"><select id="period" onchange="refresh()"><option value="daily">Daily (30 days)</option><option value="weekly">Weekly (12 weeks)</option><option value="monthly">Monthly (12 months)</option></select></div>
+  <div class="cb"><canvas id="c3"></canvas></div></div>
+</section>
+
+<section class="tab" id="t-reports">
+ <div class="panel"><h3>Generate Report</h3>
+  <div class="row"><label style="margin:0">From</label><input type="date" id="rFrom"><label style="margin:0">To</label><input type="date" id="rTo">
+  <button class="pri" onclick="genReport()">Generate</button><button onclick="window.print()">🖨 Print</button></div>
+  <div class="row"><span class="note">Download CSV:</span><button onclick="exp('bookings')">Bookings</button><button onclick="exp('payments')">Payments</button><button onclick="exp('users')">Users</button></div>
+  <div id="report"></div></div>
+</section>
+
+<section class="tab" id="t-notes">
+ <div class="panel"><h3>Alerts</h3>
+  <div class="row"><button onclick="act('/api/admin/notifications/read','POST')">Mark all read</button><button class="bad" onclick="act('/api/admin/notifications/clear','POST')">Clear all</button></div>
+  <table><thead><tr><th>Time</th><th>Type</th><th>Message</th></tr></thead><tbody id="noteBody"></tbody></table></div>
+</section>
+
+<section class="tab" id="t-settings">
+ <div class="panel" style="max-width:420px"><h3>System Settings</h3>
+  <label>Parking lot name</label><input id="sName" maxlength="40" style="width:100%">
+  <label>Hourly rate (₹)</label><input id="sRate" type="number" min="1" max="1000" style="width:100%">
+  <label>Maximum booking (hours)</label><input id="sMax" type="number" min="1" max="72" style="width:100%">
+  <label>Payment hold (minutes)</label><input id="sHold" type="number" min="1" max="60" style="width:100%">
+  <p class="note" style="margin:10px 0">Changes apply to new bookings only.</p>
+  <button class="pri" onclick="saveSettings()">Save settings</button></div>
+</section>
+
+<div id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ts=t=>t?new Date(t*1000).toLocaleString():"-";
+const tag=v=>`<span class="tag ${esc(v||"none")}">${esc(v||"none")}</span>`;
+const ZONES=["General","EV Charging","Disabled","VIP"];
+const TABS=[["dash","Dashboard"],["parking","Parking"],["users","Users"],["bookings","Bookings"],["revenue","Revenue"],["reports","Reports"],["notes","Notifications"],["settings","Settings"]];
+let cur="dash";
+
+async function api(url,method="GET",body){
+ const r=await fetch(url,{method,credentials:"same-origin",headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(d.error||"Request failed");
+ return d;
+}
+function toast(m,bad){const t=$("toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";setTimeout(()=>t.style.display="none",3200)}
+async function act(url,method,body){try{const d=await api(url,method,body);toast(d.message||"Done");refresh()}catch(e){toast(e.message,true)}}
+
+const charts={};
+function draw(id,type,labels,data,colors){
+ if(typeof Chart==="undefined")return;
+ if(charts[id]){charts[id].data.labels=labels;charts[id].data.datasets[0].data=data;charts[id].update();return}
+ const pie=type==="doughnut";
+ charts[id]=new Chart($(id),{type,data:{labels,datasets:[{data,backgroundColor:colors||"#3b82f6",borderRadius:pie?0:4}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:pie,position:"bottom"}},
+  scales:pie?{}:{y:{beginAtZero:true},x:{grid:{display:false}}}}});
+}
+
+// ---------- LOADERS ----------
+const loaders={
+ async dash(){
+  const d=await api("/api/admin/dashboard");
+  const pct=d.total_slots?Math.round((d.occupied_slots+d.reserved_slots)*100/d.total_slots):0;
+  const c=[["Total Slots",d.total_slots],["Available",d.available_slots],["Occupied",d.occupied_slots],["Reserved",d.reserved_slots],["Occupancy",pct+"%"],["Users",d.total_users],["Bookings",d.total_bookings],["Pending Payments",d.pending_payments],["Today's Revenue","₹"+d.today_revenue],["Total Revenue","₹"+d.total_revenue]];
+  $("stats").innerHTML=c.map(x=>`<div class="card"><p>${x[0]}</p><h2>${esc(x[1])}</h2></div>`).join("");
+  draw("c1","doughnut",["Available","Occupied","Reserved"],[d.available_slots,d.occupied_slots,d.reserved_slots],["#22c55e","#ef4444","#3b82f6"]);
+  try{const a=await api("/api/admin/analytics");draw("c2","bar",a.hours.map((_,i)=>String(i).padStart(2,"0")+":00"),a.hours)}catch(e){}
+ },
+ async parking(){
+  const s=await api("/api/admin/slots");
+  $("slotsBody").innerHTML=s.map(x=>`<tr><td><b>${esc(x.id)}</b></td><td>${tag(x.status)}</td>
+   <td><select onchange="act('/api/admin/slots/${esc(x.id)}','POST',{zone:this.value})">${ZONES.map(z=>`<option${z===x.zone?" selected":""}>${z}</option>`).join("")}</select></td>
+   <td>${esc(x.username?x.username+" ("+(x.vehicle||"")+")":"-")}</td>
+   <td>${x.status==="reserved"?'<span class="note">reserved</span>':`<button onclick="act('/api/admin/slots/${esc(x.id)}','POST',{status:'available'})">Free</button><button onclick="act('/api/admin/slots/${esc(x.id)}','POST',{status:'occupied'})">Occupied</button><button class="bad" onclick="delSlot('${esc(x.id)}')">Delete</button>`}</td></tr>`).join("");
+ },
+ async users(){
+  const u=await api("/api/admin/users");
+  $("usersBody").innerHTML=u.map(x=>`<tr><td>${x.id}</td><td>${esc(x.username)}</td><td>${esc(x.role)}</td><td>${ts(x.created_at)}</td><td>${x.bookings}</td><td>₹${x.spent}</td>
+   <td>${x.blocked?tag("cancelled").replace("cancelled","blocked"):tag("active").replace("active","ok")}</td>
+   <td>${x.role==="admin"?"-":`<button onclick="act('/api/admin/users/${x.id}/block','POST',{blocked:${x.blocked?"false":"true"}})">${x.blocked?"Unblock":"Block"}</button><button class="bad" onclick="delUser(${x.id},'${esc(x.username)}')">Delete</button>`}</td></tr>`).join("");
+ },
+ async bookings(){
+  const q="?status="+encodeURIComponent($("bStatus").value)+"&q="+encodeURIComponent($("bSearch").value);
+  const b=await api("/api/admin/bookings"+q);
+  $("bookBody").innerHTML=b.length?b.map(x=>`<tr><td>${x.id}</td><td>${esc(x.username)}</td><td>${esc(x.slot)}</td><td>${esc(x.vehicle)}</td><td>${x.hours||"-"}</td><td>₹${x.price||0}</td><td>${ts(x.start_time)}</td><td>${tag(x.status)}</td><td>${tag(x.payment_status)}</td><td>${esc((x.payment_method||"-").toUpperCase())}</td><td>${esc(x.txn_id||"-")}</td>
+   <td>${x.status==="pending"||x.status==="active"?`<button class="bad" onclick="cancelB(${x.id})">Cancel</button>`:""}${x.status==="active"?`<button onclick="act('/api/admin/bookings/${x.id}/complete','POST')">End early</button>`:""}</td></tr>`).join(""):'<tr><td colspan="12">No bookings found.</td></tr>';
+ },
+ async revenue(){
+  const r=await api("/api/admin/revenue?period="+$("period").value);
+  const c=[["Today","₹"+r.today],["This week","₹"+r.week],["This month","₹"+r.month],["All time","₹"+r.all_time],["Shown period","₹"+r.period_total]];
+  $("revStats").innerHTML=c.map(x=>`<div class="card"><p>${x[0]}</p><h2>${x[1]}</h2></div>`).join("");
+  draw("c3","bar",r.labels,r.values);
+ },
+ async reports(){ if(!$("rTo").value){const t=new Date();$("rTo").value=t.toISOString().slice(0,10);t.setDate(t.getDate()-29);$("rFrom").value=t.toISOString().slice(0,10)} },
+ async notes(){
+  const n=await api("/api/admin/notifications");
+  $("noteBody").innerHTML=n.items.length?n.items.map(x=>`<tr class="${x.is_read?"":"unread"}"><td>${ts(x.created_at)}</td><td>${tag(x.level)}</td><td>${esc(x.message)}</td></tr>`).join(""):'<tr><td colspan="3">No alerts yet.</td></tr>';
+ },
+ async settings(){
+  const s=await api("/api/admin/settings");
+  $("sName").value=s.lot_name;$("sRate").value=s.rate;$("sMax").value=s.max_hours;$("sHold").value=s.hold_minutes;
+ }
+};
+
+// ---------- ACTIONS ----------
+function addSlots(){act("/api/admin/slots","POST",{count:Number($("addCount").value),zone:$("addZone").value})}
+function delSlot(id){if(confirm("Delete slot "+id+"?"))act("/api/admin/slots/"+id,"DELETE")}
+function delUser(id,name){if(confirm("Delete user "+name+"? Their booking history is kept."))act("/api/admin/users/"+id,"DELETE")}
+function cancelB(id){if(confirm("Cancel booking #"+id+"? A paid booking will be refunded."))act("/api/admin/bookings/"+id+"/cancel","POST")}
+function saveSettings(){act("/api/admin/settings","POST",{lot_name:$("sName").value,rate:$("sRate").value,max_hours:$("sMax").value,hold_minutes:$("sHold").value})}
+function exp(k){location.href="/api/admin/export/"+k+"?from="+$("rFrom").value+"&to="+$("rTo").value}
+async function genReport(){
+ try{
+  const r=await api("/api/admin/reports/summary?from="+$("rFrom").value+"&to="+$("rTo").value);
+  const rows=[["Period",r.from+" to "+r.to],["Total bookings",r.total_bookings],["Active / Completed",r.by_status.active+" / "+r.by_status.completed],["Cancelled / Expired",r.by_status.cancelled+" / "+r.by_status.expired],["Revenue","₹"+r.revenue],["Refunded","₹"+r.refunded],["Failed payments",r.failed_payments],["Average booking",r.avg_hours+" hours"],["New users",r.new_users],["Busiest hour",r.busiest_hour||"-"]];
+  $("report").innerHTML=`<h3 style="margin-top:12px">Parking Report</h3><p class="note">Generated ${esc(r.generated_at)}</p><table>${rows.map(x=>`<tr><td>${x[0]}</td><td><b>${esc(x[1])}</b></td></tr>`).join("")}</table>
+  <h3 style="margin-top:14px">Top users</h3><table>${r.top_users.map(u=>`<tr><td>${esc(u.username)}</td><td>${u.bookings} bookings</td><td>₹${u.spent}</td></tr>`).join("")||"<tr><td>No data</td></tr>"}</table>
+  <h3 style="margin-top:14px">Most used slots</h3><table>${r.top_slots.map(s=>`<tr><td>${esc(s.slot)}</td><td>${s.bookings} bookings</td></tr>`).join("")||"<tr><td>No data</td></tr>"}</table>`;
+ }catch(e){toast(e.message,true)}
+}
+
+// ---------- TABS ----------
+function show(t){
+ cur=t;
+ TABS.forEach(([k])=>{$("t-"+k).classList.toggle("on",k===t);$("tab-"+k).classList.toggle("on",k===t)});
+ refresh();
+}
+async function refresh(){
+ try{
+  await loaders[cur]();
+  $("msg").textContent="";
+  const n=await api("/api/admin/dashboard");
+  $("badge").textContent=n.unread_notifications||"";
+  $("badge").style.display=n.unread_notifications?"inline":"none";
+ }catch(e){
+  $("msg").innerHTML=esc(e.message)+' — <a href="/">log in as admin on the main page</a>, then come back.';
+ }
+}
+function init(){
+ $("tabs").innerHTML=TABS.map(([k,n])=>`<button id="tab-${k}" onclick="show('${k}')">${n}${k==="notes"?'<span class="badge" id="badge" style="display:none"></span>':""}</button>`).join("");
+ $("addZone").innerHTML=ZONES.map(z=>`<option>${z}</option>`).join("");
+ api("/api/config").then(c=>{$("lot").textContent="⚙ "+c.lot_name+" Admin"}).catch(()=>{});
+ show("dash");
+ setInterval(()=>{if(!["reports","settings"].includes(cur))refresh()},10000);
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ParkWise Receipt</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: Arial, sans-serif; background: #f4f7fb; color: #1e293b; padding: 30px 15px; }
+.receipt { max-width: 440px; margin: 0 auto; background: white; border-radius: 14px; padding: 30px; box-shadow: 0 3px 12px #0000001a; }
+.brand { font-size: 22px; font-weight: bold; text-align: center; }
+.brand span { color: #2563eb; }
+.sub { text-align: center; color: #64748b; font-size: 12px; margin: 6px 0 18px; }
+.paid { text-align: center; background: #dcfce7; color: #166534; font-weight: bold; padding: 8px; border-radius: 8px; margin-bottom: 18px; }
+.paid.refunded { background: #fee2e2; color: #991b1b; }
+.row { display: flex; justify-content: space-between; gap: 15px; padding: 9px 0; border-bottom: 1px dashed #cbd5e1; font-size: 14px; }
+.row span:first-child { color: #64748b; }
+.row span:last-child { font-weight: bold; text-align: right; word-break: break-word; }
+.total { display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; margin-top: 16px; }
+.actions { display: flex; gap: 10px; margin-top: 24px; }
+.actions button, .actions a { flex: 1; text-align: center; text-decoration: none; cursor: pointer; border: none; border-radius: 8px; padding: 12px; font-weight: bold; font-size: 14px; }
+.print { background: #2563eb; color: white; }
+.back { background: #e2e8f0; color: #1e293b; }
+.note { text-align: center; color: #94a3b8; font-size: 11px; margin-top: 18px; }
+#error { text-align: center; color: #dc2626; }
+@media print {
+    body { background: white; padding: 0; }
+    .receipt { box-shadow: none; }
+    .actions { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="receipt">
+    <div class="brand">🅿 Park<span>Wise</span></div>
+    <div class="sub">Parking Payment Receipt</div>
+    <div id="error"></div>
+    <div id="content" style="display:none">
+        <div class="paid" id="statusBox"></div>
+        <div id="rows"></div>
+        <div class="total"><span>Total Paid</span><span id="total"></span></div>
+        <div class="actions">
+            <button class="print" onclick="window.print()">🖨 Print Receipt</button>
+            <a class="back" href="/">← Back to app</a>
+        </div>
+        <div class="note">Demo payment: simulated gateway. No real money was charged.</div>
+    </div>
+</div>
+
+<script>
+const id = location.pathname.split("/").filter(Boolean).pop();
+
+function fmt(ms) {
+    return ms ? new Date(ms).toLocaleString() : "-";
+}
+
+async function load() {
+    try {
+        const r = await fetch("/api/receipt/" + id, {credentials: "same-origin"});
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || "Could not load receipt.");
+
+        const refunded = d.payment_status === "refunded";
+        const box = document.getElementById("statusBox");
+        box.textContent = refunded ? "REFUNDED" : "PAID ✔";
+        box.className = "paid" + (refunded ? " refunded" : "");
+
+        const rows = [
+            ["Receipt No", d.receipt_no],
+            ["Transaction ID", d.txn_id],
+            ["Customer", d.username],
+            ["Parking Slot", d.slot],
+            ["Vehicle", d.vehicle],
+            ["Duration", d.hours + (d.hours === 1 ? " hour" : " hours")],
+            ["Parking From", fmt(d.start_ms)],
+            ["Parking Until", fmt(d.end_ms)],
+            ["Payment Method", (d.method || "").toUpperCase() + (d.detail ? " (" + d.detail + ")" : "")],
+            ["Paid On", fmt(d.paid_at_ms)]
+        ];
+
+        const box2 = document.getElementById("rows");
+        rows.forEach(r => {
+            const row = document.createElement("div");
+            row.className = "row";
+            const a = document.createElement("span");
+            const b = document.createElement("span");
+            a.textContent = r[0];
+            b.textContent = r[1] == null ? "-" : r[1];
+            row.append(a, b);
+            box2.appendChild(row);
+        });
+
+        document.getElementById("total").textContent = "₹" + d.amount;
+        document.getElementById("content").style.display = "block";
+    } catch (e) {
+        document.getElementById("error").innerHTML =
+            e.message + '<br><br><a href="/">Go back and log in</a>';
+    }
+}
+
+load();
+</script>
+</body>
+</html>

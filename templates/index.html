@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563eb">
+<title>ParkWise | Smart Parking Management</title>
+<link rel="icon" href="/static/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<!-- <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232563eb'/%3E%3Cpath d='M24 48V16h12a10 10 0 0 1 0 20H24' fill='none' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"> -->
+<script>
+(function(){
+  try{
+    var t=localStorage.getItem("pw-theme");
+    if(!t){t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"}
+    document.documentElement.setAttribute("data-theme",t);
+  }catch(e){document.documentElement.setAttribute("data-theme","light")}
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+ --bg:#f4f6fb;--surface:#ffffff;--surface-2:#f8fafc;--text:#0f172a;--muted:#64748b;--border:#e5e9f2;
+ --primary:#2563eb;--primary-d:#1d4ed8;--primary-soft:#eaf1ff;--success:#16a34a;
+ --side:#0f1b2e;--side-hover:#1b2c47;--side-text:#b6c2d6;
+ --av-bg:#e8f9ee;--av-bd:#34c46a;--av-tx:#146c3a;
+ --oc-bg:#fdecec;--oc-bd:#ef5b5b;--oc-tx:#9b1c1c;
+ --rs-bg:#e8f0fe;--rs-bd:#4b8bf5;--rs-tx:#1c4bb3;
+ --pd-bg:#fef3c7;--pd-tx:#92400e;--nu-bg:#e8ecf3;--nu-tx:#475569;
+ --shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px rgba(15,23,42,.06);
+ --radius:14px;
+}
+[data-theme="dark"]{
+ --bg:#0a101c;--surface:#121a2b;--surface-2:#182238;--text:#e6ebf5;--muted:#91a0ba;--border:#222f49;
+ --primary:#4f8cff;--primary-d:#3b78ee;--primary-soft:#16253f;
+ --side:#0d1626;--side-hover:#18253d;--side-text:#9fb0cb;
+ --av-bg:#0f2a1c;--av-bd:#2fa862;--av-tx:#8be0ae;
+ --oc-bg:#321517;--oc-bd:#d24b4b;--oc-tx:#f5a3a3;
+ --rs-bg:#13243f;--rs-bd:#3f7be0;--rs-tx:#9ec1ff;
+ --pd-bg:#3a2d0b;--pd-tx:#f3cf7a;--nu-bg:#1f2a42;--nu-tx:#a7b4cc;
+ --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.45;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px;flex-shrink:0}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;padding:10px 16px;font-weight:600;font-size:14px;transition:transform .15s,background .2s,box-shadow .2s}
+button:active{transform:scale(.98)}
+button:disabled{opacity:.6;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+a{color:var(--primary)}
+.btn-icon{display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-d)}
+.btn-soft-danger{background:var(--oc-bg);color:var(--oc-tx)}
+
+/* SIDEBAR */
+.app{display:flex;min-height:100vh}
+.sidebar{width:250px;background:var(--side);color:#fff;padding:26px 16px;flex-shrink:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:700;margin:0 8px 34px}
+.brand .logo{width:34px;height:34px}
+.brand span{color:#7db0ff}
+.nav-title{color:#6f819f;font-size:11px;letter-spacing:1.2px;margin:0 10px 12px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:4px;border-radius:10px;color:var(--side-text);cursor:pointer;font-size:14px;font-weight:500;transition:background .2s,color .2s}
+.nav-item:hover{background:var(--side-hover);color:#fff}
+.nav-item.active{background:var(--primary);color:#fff}
+.side-foot{margin-top:auto;font-size:11px;color:#6f819f;padding:0 10px;line-height:1.6}
+.side-foot b{color:#9fb0cb;display:block;font-size:12px}
+.scrim{display:none}
+
+/* MAIN */
+.main{flex:1;min-width:0;padding:28px 32px 20px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:24px}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar h1{font-size:26px;letter-spacing:-.3px}
+.topbar p{color:var(--muted);margin-top:4px;font-size:13px}
+.top-actions{display:flex;align-items:center;gap:10px}
+.icon-btn{background:var(--surface);color:var(--text);border:1px solid var(--border);width:40px;height:40px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn:hover{background:var(--surface-2)}
+.menu-btn{display:none}
+.chip{display:none;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:5px 14px 5px 6px;font-size:13px;font-weight:600}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+
+/* HERO + FEATURES (logged out) */
+.hero{display:grid;grid-template-columns:1.6fr 1fr;gap:24px;align-items:center;background:linear-gradient(120deg,#0f2a52,#2563eb 70%,#4f8cff);color:#fff;border-radius:20px;padding:36px;margin-bottom:22px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero-copy,.hero-stat{position:relative;z-index:1}
+.hero h2{font-size:32px;line-height:1.15;letter-spacing:-.5px;margin:12px 0}
+.hero p{color:#dbe8ff;font-size:15px;max-width:520px}
+.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.16);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600}
+.hero-cta{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+.btn-light{background:#fff;color:#1d4ed8}
+.btn-light:hover{background:#eaf1ff}
+.btn-ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35)}
+.btn-ghost:hover{background:rgba(255,255,255,.24)}
+.hero-stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:16px;padding:22px;text-align:center}
+.hero-stat b{display:block;font-size:56px;line-height:1}
+.hero-stat span{font-size:13px;color:#dbe8ff}
+.live{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}70%{box-shadow:0 0 0 8px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+.feature{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.feature .fi{width:42px;height:42px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.feature .fi .ic{width:22px;height:22px}
+.feature h4{margin-bottom:4px}
+.feature p{color:var(--muted);font-size:13px}
+
+/* WELCOME (logged in) */
+.welcome{display:none;background:linear-gradient(120deg,#0f2a52,#2563eb);color:#fff;padding:22px 26px;border-radius:16px;margin-bottom:22px}
+.welcome h2{font-size:20px;margin-bottom:6px}
+.welcome p{color:#dbe8ff;font-size:14px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+.card{background:var(--surface);border:1px solid var(--border);padding:18px 20px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;animation:rise .5s both}
+.stats .card:nth-child(2){animation-delay:.05s}
+.stats .card:nth-child(3){animation-delay:.1s}
+.stats .card:nth-child(4){animation-delay:.15s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.ci{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ci .ic{width:22px;height:22px}
+.ci.av{background:var(--av-bg);color:var(--av-tx)}
+.ci.oc{background:var(--oc-bg);color:var(--oc-tx)}
+.ci.rs{background:var(--rs-bg);color:var(--rs-tx)}
+.ci.mb{background:var(--pd-bg);color:var(--pd-tx)}
+.card p{color:var(--muted);font-size:12px;font-weight:600}
+.card h2{font-size:28px;line-height:1.1;margin-top:2px}
+
+/* PANELS */
+.content{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.stack{display:flex;flex-direction:column;gap:20px}
+.panel{background:var(--surface);border:1px solid var(--border);padding:22px;border-radius:var(--radius);box-shadow:var(--shadow);scroll-margin-top:16px}
+.panel h3{display:flex;align-items:center;gap:8px;font-size:16px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.panel-subtitle{color:var(--muted);font-size:13px;margin-bottom:12px}
+.stamp{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}
+
+/* SEARCH + SLOTS */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 8px}
+.search{position:relative;flex:1;min-width:170px}
+.search .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);width:16px;height:16px}
+.search input{padding-left:36px;width:100%}
+.toolbar select,.toolbar input{margin:0;width:auto;padding:10px 12px;font-size:13px}
+.toolbar .search input{width:100%}
+.link-btn{background:none;color:var(--primary);padding:10px 8px;font-size:13px}
+.count{color:var(--muted);font-size:12px;margin-bottom:12px}
+.slots{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.slot{min-height:104px;border:2px solid;border-radius:14px;font-size:13px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;padding:8px;transition:transform .18s,box-shadow .18s}
+.slot:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 8px 18px rgba(0,0,0,.12)}
+.slot:disabled{opacity:1;cursor:not-allowed}
+.slot .slot-ic .ic{width:22px;height:22px}
+.slot.available{background:var(--av-bg);border-color:var(--av-bd);color:var(--av-tx)}
+.slot.occupied{background:var(--oc-bg);border-color:var(--oc-bd);color:var(--oc-tx)}
+.slot.reserved{background:var(--rs-bg);border-color:var(--rs-bd);color:var(--rs-tx)}
+.slot strong{font-size:15px}
+.slot small{font-size:10px;letter-spacing:.4px;font-weight:600}
+.slot .zone{opacity:.7;font-weight:500}
+.empty{grid-column:1/-1;color:var(--muted);font-size:13px;padding:20px 0}
+.skel{background:linear-gradient(90deg,var(--surface-2) 25%,var(--border) 37%,var(--surface-2) 63%);background-size:400% 100%;animation:shimmer 1.4s infinite;border-radius:14px;min-height:104px}
+@keyframes shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.legend{display:flex;flex-wrap:wrap;gap:15px;margin-top:20px;color:var(--muted);font-size:12px}
+.dot{width:10px;height:10px;display:inline-block;border-radius:50%;margin-right:5px}
+
+/* CHARGES + RESERVATIONS */
+.rate-card{background:var(--primary-soft);padding:16px 18px;border-radius:12px;margin:12px 0}
+.rate-card h2{color:var(--primary);margin:6px 0;font-size:26px}
+.rate-card p{color:var(--muted);font-size:12px}
+.mini{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px}
+.mini td{padding:8px 4px;border-bottom:1px solid var(--border)}
+.mini td:last-child{text-align:right;font-weight:700}
+.spent{background:var(--surface-2);border-radius:10px;padding:12px;font-size:13px;line-height:1.8;display:none}
+.note{color:var(--muted);font-size:11px;line-height:1.5}
+.reservation-item{padding:14px;border:1px solid var(--border);border-radius:12px;margin-top:12px;font-size:13px;line-height:1.8;background:var(--surface-2)}
+.cancel-btn{background:var(--oc-bg);color:var(--oc-tx);margin-top:10px;padding:8px 12px;font-size:13px}
+.pay-btn{background:var(--success);color:#fff;margin-top:10px;margin-right:6px;padding:8px 12px;font-size:13px}
+.receipt-link{display:inline-block;background:var(--rs-bg);color:var(--rs-tx);text-decoration:none;font-weight:600;margin-top:10px;margin-right:6px;padding:8px 12px;border-radius:10px;font-size:13px}
+
+/* HISTORY */
+.tblwrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl th{color:var(--muted);font-size:12px;font-weight:600}
+.tbl tbody tr:hover{background:var(--surface-2)}
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
+.tag.completed,.tag.paid{background:var(--av-bg);color:var(--av-tx)}
+.tag.cancelled,.tag.failed{background:var(--oc-bg);color:var(--oc-tx)}
+.tag.active{background:var(--rs-bg);color:var(--rs-tx)}
+.tag.pending{background:var(--pd-bg);color:var(--pd-tx)}
+.tag.refunded,.tag.expired,.tag.none{background:var(--nu-bg);color:var(--nu-tx)}
+.head-select{margin:0;width:auto;padding:8px 10px;font-size:13px}
+
+/* MODALS */
+.modal{display:none;position:fixed;inset:0;background:rgba(8,13,25,.6);backdrop-filter:blur(3px);justify-content:center;align-items:center;z-index:100;padding:15px}
+.modal-content{background:var(--surface);color:var(--text);width:400px;max-width:100%;padding:28px;border-radius:18px;position:relative;max-height:95vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:pop .22s ease}
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+.modal-content h2{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:20px}
+.close{position:absolute;right:14px;top:14px;width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--muted);background:none}
+.close:hover{background:var(--surface-2)}
+input,select{width:100%;padding:12px;margin:6px 0;border:1px solid var(--border);border-radius:10px;outline:none;background:var(--surface);color:var(--text);font-size:14px;font-family:inherit}
+input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+input[readonly]{background:var(--surface-2)}
+label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin-top:8px}
+.modal-content button.submit{width:100%;background:var(--primary);color:#fff;margin-top:14px;padding:13px}
+.modal-content button.submit:hover{background:var(--primary-d)}
+.modal-content button.success{width:100%;background:var(--success);color:#fff;margin-top:14px;padding:13px}
+.modal-content button.secondary{width:100%;background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:8px}
+.modal-message{font-size:12px;margin:8px 0;color:#dc2626;min-height:4px}
+.price-preview{background:var(--primary-soft);color:var(--primary);padding:12px 14px;margin-top:12px;border-radius:10px;font-weight:700}
+.pay-center{text-align:center}
+.pay-center h2{justify-content:center}
+.pay-amount{font-size:32px;font-weight:800;color:var(--primary)}
+.qr-box{background:#fff;color:#64748b;border-radius:14px;padding:12px;width:fit-content;min-width:214px;min-height:214px;margin:14px auto;display:flex;align-items:center;justify-content:center;font-size:12px}
+.timer{background:var(--pd-bg);color:var(--pd-tx);font-weight:700;padding:9px;border-radius:10px;margin-top:10px;font-size:13px}
+.demo-note{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.5}
+
+/* TOAST + FOOTER */
+#toast{position:fixed;right:20px;bottom:20px;background:var(--text);color:var(--bg);padding:12px 18px;border-radius:10px;display:none;z-index:200;max-width:340px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:pop .2s}
+#toast.bad{background:#b91c1c;color:#fff}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;padding-bottom:6px}
+
+/* RESPONSIVE */
+@media(max-width:1100px){
+ .stats{grid-template-columns:repeat(2,1fr)}
+ .content{grid-template-columns:1fr}
+ .slots{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:900px){
+ .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:60;transform:translateX(-105%);transition:transform .25s}
+ body.menu-open .sidebar{transform:none}
+ body.menu-open .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:55}
+ .menu-btn{display:inline-flex}
+ .main{padding:20px 16px}
+ .hero{grid-template-columns:1fr;padding:26px}
+ .hero h2{font-size:26px}
+ .features{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+ .slots{grid-template-columns:repeat(2,1fr)}
+ .topbar h1{font-size:21px}
+ .topbar p{display:none}
+ .stats{gap:10px}
+ .card{padding:14px}
+ .card h2{font-size:22px}
+ .chip{padding:4px}
+ .chip #usernameDisplay{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ICON SPRITE -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-car" viewBox="0 0 24 24"><path d="M3 13l1.6-4.6A2 2 0 0 1 6.5 7h11a2 2 0 0 1 1.9 1.4L21 13"/><rect x="2" y="13" width="20" height="5" rx="2"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></symbol>
+<symbol id="i-parking" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+<symbol id="i-login" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+<symbol id="i-clipboard" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+<symbol id="i-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol>
+<symbol id="i-receipt" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+<symbol id="i-rupee" viewBox="0 0 24 24"><path d="M6 4h12M6 9h12M9 4c5 0 5 8 0 8H6l8 8"/></symbol>
+</svg>
+
+<div class="scrim" onclick="closeMenu()"></div>
+
+<div class="app">
+
+<aside class="sidebar">
+    <div class="brand">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#2563eb"/><path d="M24 48V16h12a10 10 0 0 1 0 20H24" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div>Park<span>Wise</span></div>
+    </div>
+
+    <div class="nav-title">MAIN MENU</div>
+    <div class="nav-item active" onclick="go('top',this)"><svg class="ic"><use href="#i-grid"/></svg>Dashboard</div>
+    <div class="nav-item" onclick="go('parkingPanel',this)"><svg class="ic"><use href="#i-car"/></svg>Parking Slots</div>
+    <div class="nav-item" onclick="go('myBookings',this)"><svg class="ic"><use href="#i-clipboard"/></svg>My Reservations</div>
+    <div class="nav-item" onclick="go('historyPanel',this)"><svg class="ic"><use href="#i-clock"/></svg>Booking History</div>
+    <div class="nav-item" onclick="go('chargesPanel',this)"><svg class="ic"><use href="#i-rupee"/></svg>Parking Charges</div>
+    <div class="nav-item" id="navAdmin" style="display:none" onclick="location.href='/admin'"><svg class="ic"><use href="#i-sliders"/></svg>Management</div>
+
+    <div class="side-foot"><b id="lotName">ParkWise Parking Lot</b>Demo build · simulated sensors &amp; payments</div>
+</aside>
+
+<main class="main">
+
+<div class="topbar">
+    <div class="topbar-left">
+        <button class="icon-btn menu-btn" aria-label="Open menu" onclick="toggleMenu()"><svg class="ic"><use href="#i-menu"/></svg></button>
+        <div>
+            <h1>Dashboard Overview</h1>
+            <p>Welcome to your Smart Parking Management System.</p>
+        </div>
+    </div>
+    <div class="top-actions">
+        <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle dark mode"></button>
+        <span class="chip" id="userChip"><span class="avatar" id="avatar">?</span><span id="usernameDisplay">Guest</span></span>
+        <button class="btn-primary btn-icon" id="authButton" onclick="openLogin()"><svg class="ic"><use href="#i-login"/></svg>Login</button>
+        <button class="btn-soft-danger btn-icon" id="logoutButton" onclick="logout()" style="display:none"><svg class="ic"><use href="#i-logout"/></svg>Logout</button>
+    </div>
+</div>
+
+<section class="hero" id="hero">
+    <div class="hero-copy">
+        <span class="pill"><i class="live"></i> Live availability</span>
+        <h2>Find parking in seconds, not circles.</h2>
+        <p>See which spots are free right now, reserve one, pay with a QR code and get a printable receipt, all in one place.</p>
+        <div class="hero-cta">
+            <button class="btn-light" onclick="openRegister()">Get started</button>
+            <button class="btn-ghost" onclick="openLogin()">Log in</button>
+        </div>
+    </div>
+    <div class="hero-stat"><b id="heroFree">0</b><span>spots free right now</span></div>
+</section>
+
+<section class="features" id="features">
+    <div class="feature"><div class="fi"><svg class="ic"><use href="#i-zap"/></svg></div><h4>Live availability</h4><p>The slot map refreshes automatically, so you always see what is free.</p></div>
+    <div class="feature"><div class="fi"><svg class="ic"><use href="#i-phone"/></svg></div><h4>Pay by QR</h4><p>Hold a slot, scan the code and confirm. Unpaid holds are released automatically.</p></div>
+    <div class="feature"><div class="fi"><svg class="ic"><use href="#i-receipt"/></svg></div><h4>Instant receipts</h4><p>Get a printable receipt for every booking, and an automatic refund if you cancel.</p></div>
+</section>
+
+<section class="welcome" id="welcome">
+    <h2 id="welcomeTitle"></h2>
+    <p>Find an available parking space and reserve it in a few clicks.</p>
+</section>
+
+<section class="stats" id="top">
+    <div class="card"><div class="ci av"><svg class="ic"><use href="#i-check"/></svg></div><div><p>Available Spaces</p><h2 id="availableCount">0</h2></div></div>
+    <div class="card"><div class="ci oc"><svg class="ic"><use href="#i-car"/></svg></div><div><p>Occupied Spaces</p><h2 id="occupiedCount">0</h2></div></div>
+    <div class="card"><div class="ci rs"><svg class="ic"><use href="#i-parking"/></svg></div><div><p>Reserved Spaces</p><h2 id="reservedCount">0</h2></div></div>
+    <div class="card"><div class="ci mb"><svg class="ic"><use href="#i-clipboard"/></svg></div><div><p>My Bookings</p><h2 id="myBookingCount">0</h2></div></div>
+</section>
+
+<div class="content">
+
+    <section class="panel" id="parkingPanel">
+        <div class="panel-head">
+            <h3><svg class="ic"><use href="#i-parking"/></svg>Parking Area</h3>
+            <span class="stamp"><i class="live"></i><span id="liveStamp">Live</span></span>
+        </div>
+        <p class="panel-subtitle">Select an available slot to reserve your parking space.</p>
+
+        <div class="toolbar">
+            <div class="search">
+                <svg class="ic"><use href="#i-search"/></svg>
+                <input id="slotSearch" placeholder="Search slot (e.g. P4) or zone" oninput="renderSlots()" aria-label="Search slots">
+            </div>
+            <select id="zoneFilter" onchange="renderSlots()" aria-label="Filter by zone"><option value="">All zones</option></select>
+            <select id="statusFilter" onchange="renderSlots()" aria-label="Filter by status">
+                <option value="">All statuses</option>
+                <option value="available">Available</option>
+                <option value="occupied">Occupied</option>
+                <option value="reserved">Reserved</option>
+                <option value="mine">My booking</option>
+            </select>
+            <button class="link-btn" onclick="clearFilters()">Clear</button>
+        </div>
+        <div class="count" id="slotCount"></div>
+
+        <div class="slots" id="slotsGrid"></div>
+
+        <div class="legend">
+            <span><i class="dot" style="background:var(--av-bd)"></i>Available</span>
+            <span><i class="dot" style="background:var(--oc-bd)"></i>Occupied</span>
+            <span><i class="dot" style="background:var(--rs-bd)"></i>Reserved</span>
+        </div>
+    </section>
+
+    <div class="stack">
+        <section class="panel" id="chargesPanel">
+            <h3><svg class="ic"><use href="#i-rupee"/></svg>Parking Charges</h3>
+            <div class="rate-card">
+                <p>Hourly parking charge</p>
+                <h2 id="hourlyRate">₹20 / hour</h2>
+                <p>Maximum booking: <span id="maxHours">12</span> hours</p>
+            </div>
+            <table class="mini"><tbody id="chargeRows"></tbody></table>
+            <div class="spent" id="spentBox">
+                Total paid by you: <b id="spentAmt">₹0</b><br>
+                Total refunded: <b id="refundAmt">₹0</b>
+            </div>
+            <p class="note" style="margin-top:10px">Pay within <span id="holdMin">5</span> minutes of booking or the slot is released. Cancelling a paid booking refunds it.</p>
+        </section>
+
+        <section class="panel" id="myBookings">
+            <h3><svg class="ic"><use href="#i-clipboard"/></svg>My Reservations</h3>
+            <div id="reservationList"><p class="panel-subtitle" style="margin-top:10px">Login to view your bookings.</p></div>
+        </section>
+    </div>
+
+</div>
+
+<section class="panel" id="historyPanel" style="margin-top:20px">
+    <div class="panel-head">
+        <h3><svg class="ic"><use href="#i-clock"/></svg>Booking History</h3>
+        <select id="histFilter" class="head-select" onchange="renderHistory()" aria-label="Filter history">
+            <option value="">All bookings</option>
+            <option value="pending">Awaiting payment</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="expired">Expired</option>
+        </select>
+    </div>
+    <div id="historyBox"><p class="panel-subtitle">Login to view your booking history.</p></div>
+</section>
+
+<footer>© 2026 ParkWise | Smart Parking Management System</footer>
+
+</main>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="modal" id="loginModal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+        <button class="close" aria-label="Close" onclick="closeModal('loginModal')"><svg class="ic"><use href="#i-x"/></svg></button>
+        <h2><svg class="ic"><use href="#i-user"/></svg><span id="authTitle">Login</span></h2>
+        <div id="authMessage" class="modal-message"></div>
+        <input id="loginUsername" placeholder="Username" maxlength="20" autocomplete="username">
+        <input id="loginPassword" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password">
+        <button class="submit" onclick="submitAuth()" id="authSubmit">Login</button>
+        <p style="font-size:13px;margin-top:16px;text-align:center;color:var(--muted)">
+            <span id="switchText">New user?</span>
+            <a href="#" id="switchLink" onclick="toggleAuth();return false">Register here</a>
+        </p>
+    </div>
+</div>
+
+<!-- RESERVATION MODAL -->
+<div class="modal" id="bookingModal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+        <button class="close" aria-label="Close" onclick="closeModal('bookingModal')"><svg class="ic"><use href="#i-x"/></svg></button>
+        <h2><svg class="ic"><use href="#i-car"/></svg>Reserve Parking</h2>
+        <div id="bookingMessage" class="modal-message"></div>
+        <label>Selected Slot</label>
+        <input id="selectedSlot" readonly>
+        <label>Vehicle Number</label>
+        <input id="vehicleNumber" placeholder="KA01AB1234" maxlength="13" autocapitalize="characters">
+        <label>Booking Duration</label>
+        <select id="bookingHours" onchange="updatePrice()"></select>
+        <div class="price-preview">Total Price: <span id="pricePreview">₹20</span></div>
+        <button class="submit" onclick="reserveSlot()">Continue to Payment</button>
+    </div>
+</div>
+
+<!-- PAYMENT MODAL (QR) -->
+<div class="modal" id="payModal" role="dialog" aria-modal="true">
+    <div class="modal-content pay-center">
+        <button class="close" aria-label="Close" onclick="closePay()"><svg class="ic"><use href="#i-x"/></svg></button>
+        <h2><svg class="ic"><use href="#i-phone"/></svg>Scan &amp; Pay</h2>
+        <div style="font-size:13px;color:var(--muted)">Slot <strong id="paySlot"></strong></div>
+        <div class="pay-amount" id="payAmount"></div>
+        <div class="qr-box" id="qrBox"></div>
+        <div style="font-size:12px;color:var(--muted)">Scan with any UPI app (GPay, PhonePe, Paytm)</div>
+        <div class="timer">Slot held for <span id="holdTimer">5:00</span></div>
+        <div id="payMessage" class="modal-message"></div>
+        <button class="success" id="paidBtn" onclick="payNow()">I have paid</button>
+        <button class="secondary" onclick="cancelPending()">Cancel booking</button>
+        <div class="demo-note">Demo mode: simulated gateway. After scanning, press "I have paid" to confirm and get your receipt.</div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let currentUser=null, currentRole=null, selectedSlot=null, slots=[], myHist=null;
+let rate=20, maxHours=12, holdSeconds=300, authMode="login", zoneKey="";
+let payInfo=null, holdTimer=null;
+const MERCHANT_UPI="parkwise@upi";
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ic=n=>`<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const STATUS_LABEL={pending:"Awaiting payment",active:"Active",completed:"Completed",cancelled:"Cancelled",expired:"Expired"};
+const PAY_LABEL={paid:"Paid",refunded:"Refunded",pending:"Pending",failed:"Failed",none:"-"};
+
+/* ---------- THEME, MENU, TOAST ---------- */
+function applyThemeIcon(){
+    const dark=document.documentElement.getAttribute("data-theme")==="dark";
+    $("themeBtn").innerHTML=ic(dark?"sun":"moon");
+    $("themeBtn").setAttribute("aria-label",dark?"Switch to light mode":"Switch to dark mode");
+}
+function toggleTheme(){
+    const next=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
+    document.documentElement.setAttribute("data-theme",next);
+    try{localStorage.setItem("pw-theme",next)}catch(e){}
+    applyThemeIcon();
+}
+function toggleMenu(){document.body.classList.toggle("menu-open")}
+function closeMenu(){document.body.classList.remove("menu-open")}
+
+function toast(msg,bad){
+    const t=$("toast");
+    t.textContent=msg;
+    t.className=bad?"bad":"";
+    t.style.display="block";
+    clearTimeout(toast.t);
+    toast.t=setTimeout(()=>t.style.display="none",3200);
+}
+
+function go(id,el){
+    if(id==="top") window.scrollTo({top:0,behavior:"smooth"});
+    else $(id).scrollIntoView({behavior:"smooth",block:"start"});
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    if(el) el.classList.add("active");
+    closeMenu();
+}
+
+async function api(url,options={}){
+    const response=await fetch(url,{
+        ...options,
+        headers:{"Content-Type":"application/json",...(options.headers||{})},
+        credentials:"same-origin"
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error||"Request failed");
+    return data;
+}
+
+/* ---------- MODALS & AUTH ---------- */
+function openModal(id){$(id).style.display="flex"}
+function closeModal(id){$(id).style.display="none"}
+
+function openLogin(){
+    authMode="login";
+    updateAuthMode();
+    $("authMessage").textContent="";
+    openModal("loginModal");
+    setTimeout(()=>$("loginUsername").focus(),50);
+}
+function openRegister(){
+    authMode="register";
+    updateAuthMode();
+    $("authMessage").textContent="";
+    openModal("loginModal");
+    setTimeout(()=>$("loginUsername").focus(),50);
+}
+function toggleAuth(){
+    authMode=authMode==="login"?"register":"login";
+    updateAuthMode();
+    $("authMessage").textContent="";
+}
+function updateAuthMode(){
+    const reg=authMode==="register";
+    $("authTitle").textContent=reg?"Create Account":"Login";
+    $("authSubmit").textContent=reg?"Register":"Login";
+    $("switchText").textContent=reg?"Already registered?":"New user?";
+    $("switchLink").textContent=reg?"Log in":"Register here";
+}
+
+async function submitAuth(){
+    const username=$("loginUsername").value.trim();
+    const password=$("loginPassword").value;
+    if(!username||!password){
+        $("authMessage").textContent="Please enter username and password.";
+        return;
+    }
+    try{
+        const result=await api(authMode==="register"?"/api/register":"/api/login",
+            {method:"POST",body:JSON.stringify({username,password})});
+        currentUser=result.username;
+        currentRole=result.role||"user";
+        $("loginUsername").value="";
+        $("loginPassword").value="";
+        closeModal("loginModal");
+        updateUser();
+        toast("Welcome, "+currentUser+"!");
+        await loadSlots();
+    }catch(e){
+        $("authMessage").textContent=e.message;
+    }
+}
+
+function updateUser(){
+    const on=!!currentUser;
+    $("usernameDisplay").textContent=currentUser||"Guest";
+    $("avatar").textContent=on?currentUser.charAt(0).toUpperCase():"?";
+    $("userChip").style.display=on?"inline-flex":"none";
+    $("authButton").style.display=on?"none":"inline-flex";
+    $("logoutButton").style.display=on?"inline-flex":"none";
+    $("navAdmin").style.display=currentRole==="admin"?"flex":"none";
+    $("hero").style.display=on?"none":"grid";
+    $("features").style.display=on?"none":"grid";
+    $("welcome").style.display=on?"block":"none";
+    $("welcomeTitle").textContent=on?"Welcome back, "+currentUser:"";
+}
+
+async function logout(){
+    try{
+        await api("/api/logout",{method:"POST",body:"{}"});
+        currentUser=null;
+        currentRole=null;
+        myHist=null;
+        closePay();
+        updateUser();
+        await loadSlots();
+        toast("You have been logged out.");
+    }catch(e){
+        toast(e.message,true);
+    }
+}
+
+/* ---------- CONFIG & CHARGES ---------- */
+async function loadConfig(){
+    try{
+        const c=await api("/api/config");
+        rate=c.rate;
+        maxHours=c.max_hours;
+        holdSeconds=c.hold_seconds||300;
+        if(c.lot_name) $("lotName").textContent=c.lot_name;
+
+        $("bookingHours").innerHTML="";
+        for(let i=1;i<=maxHours;i++){
+            const o=document.createElement("option");
+            o.value=i;
+            o.textContent=i+(i===1?" hour":" hours");
+            $("bookingHours").appendChild(o);
+        }
+        renderCharges();
+        updatePrice();
+    }catch(e){console.error(e)}
+}
+
+function renderCharges(){
+    $("hourlyRate").textContent="₹"+rate+" / hour";
+    $("maxHours").textContent=maxHours;
+    $("holdMin").textContent=Math.round(holdSeconds/60);
+    const picks=[...new Set([1,2,4,8,maxHours].filter(h=>h<=maxHours))].sort((a,b)=>a-b);
+    $("chargeRows").innerHTML=picks.map(h=>`<tr><td>${h} ${h===1?"hour":"hours"}</td><td>₹${h*rate}</td></tr>`).join("");
+}
+
+function renderSpent(){
+    if(!currentUser||!myHist){$("spentBox").style.display="none";return}
+    $("spentBox").style.display="block";
+    $("spentAmt").textContent="₹"+myHist.total_spent;
+    $("refundAmt").textContent="₹"+myHist.total_refunded;
+}
+
+async function loadCurrentUser(){
+    try{
+        const r=await api("/api/me");
+        currentUser=r.username||null;
+        currentRole=r.role||null;
+    }catch(e){
+        currentUser=null;
+        currentRole=null;
+    }
+    updateUser();
+}
+
+/* ---------- SLOTS: LOAD, SEARCH, RENDER ---------- */
+function showSkeleton(){
+    $("slotsGrid").innerHTML=Array.from({length:10},()=>'<div class="skel"></div>').join("");
+}
+
+async function loadSlots(){
+    try{
+        slots=await api("/api/slots");
+        $("liveStamp").textContent="Live · updated "+new Date().toLocaleTimeString();
+        renderZoneOptions();
+        renderSlots();
+        renderReservations();
+        await loadHistory();
+    }catch(e){
+        $("slotsGrid").innerHTML='<div class="empty">Unable to load parking slots. <button class="link-btn" onclick="loadSlots()">Retry</button></div>';
+    }
+}
+
+function renderZoneOptions(){
+    const zones=[...new Set(slots.map(s=>s.zone).filter(Boolean))].sort();
+    const key=zones.join("|");
+    if(key===zoneKey) return;
+    zoneKey=key;
+    const sel=$("zoneFilter"), keep=sel.value;
+    sel.innerHTML='<option value="">All zones</option>'+zones.map(z=>`<option>${esc(z)}</option>`).join("");
+    sel.value=zones.includes(keep)?keep:"";
+}
+
+function clearFilters(){
+    $("slotSearch").value="";
+    $("zoneFilter").value="";
+    $("statusFilter").value="";
+    renderSlots();
+}
+
+function renderSlots(){
+    let available=0, occupied=0, reserved=0, mine=0;
+    slots.forEach(s=>{
+        if(s.status==="available") available++;
+        if(s.status==="occupied") occupied++;
+        if(s.status==="reserved") reserved++;
+        if(s.mine&&s.status==="reserved") mine++;
+    });
+
+    const q=$("slotSearch").value.trim().toLowerCase();
+    const zone=$("zoneFilter").value;
+    const st=$("statusFilter").value;
+
+    const shown=slots.filter(s=>{
+        if(q&&!(s.id.toLowerCase().includes(q)||(s.zone||"").toLowerCase().includes(q))) return false;
+        if(zone&&s.zone!==zone) return false;
+        if(st==="mine") return s.mine;
+        if(st&&s.status!==st) return false;
+        return true;
+    });
+
+    const grid=$("slotsGrid");
+    grid.innerHTML="";
+    if(!shown.length) grid.innerHTML='<div class="empty">No slots match your search.</div>';
+
+    shown.forEach(slot=>{
+        const button=document.createElement("button");
+        button.type="button";
+        button.className="slot "+slot.status;
+
+        const icon=slot.status==="available"?ic("plus"):slot.status==="occupied"?ic("car"):ic("parking");
+        const detail=slot.mine&&slot.pay_status==="pending"?"PAYMENT PENDING":
+            slot.mine?"YOUR BOOKING":
+            slot.status==="available"?"TAP TO BOOK":slot.status.toUpperCase();
+
+        button.innerHTML=`<span class="slot-ic">${icon}</span>
+            <strong>${esc(slot.id)}</strong>
+            <small>${detail}</small>
+            <small class="zone">${esc(slot.zone||"General")}</small>`;
+
+        if(slot.status==="available") button.onclick=()=>openBooking(slot.id);
+        else button.disabled=true;
+        grid.appendChild(button);
+    });
+
+    $("slotCount").textContent="Showing "+shown.length+" of "+slots.length+" slots";
+    $("availableCount").textContent=available;
+    $("occupiedCount").textContent=occupied;
+    $("reservedCount").textContent=reserved;
+    $("myBookingCount").textContent=mine;
+    $("heroFree").textContent=available;
+}
+
+/* ---------- BOOKING ---------- */
+function openBooking(slotId){
+    if(!currentUser){
+        openLogin();
+        $("authMessage").textContent="Please log in before booking.";
+        return;
+    }
+    selectedSlot=slotId;
+    $("selectedSlot").value=slotId;
+    $("vehicleNumber").value="";
+    $("bookingMessage").textContent="";
+    updatePrice();
+    openModal("bookingModal");
+    setTimeout(()=>$("vehicleNumber").focus(),50);
+}
+
+function updatePrice(){
+    const hours=Number($("bookingHours").value||1);
+    $("pricePreview").textContent="₹"+(hours*rate);
+}
+
+async function reserveSlot(){
+    const vehicle=$("vehicleNumber").value.trim().replace(/\s+/g,"").toUpperCase();
+    const hours=Number($("bookingHours").value);
+    if(!vehicle){
+        $("bookingMessage").textContent="Please enter your vehicle number.";
+        return;
+    }
+    try{
+        const result=await api("/api/reserve",{
+            method:"POST",
+            body:JSON.stringify({slot:selectedSlot,vehicle,hours,hold:true})
+        });
+        closeModal("bookingModal");
+        await loadSlots();
+        startPayment({slot:result.slot,price:result.price,holdEnd:result.hold_end_ms});
+    }catch(e){
+        $("bookingMessage").textContent=e.message;
+        await loadSlots();
+    }
+}
+
+/* ---------- PAYMENT ---------- */
+function startPayment(info){
+    payInfo=info;
+    $("paySlot").textContent=info.slot;
+    $("payAmount").textContent="₹"+info.price;
+    $("payMessage").textContent="";
+    $("paidBtn").disabled=false;
+
+    const box=$("qrBox");
+    box.innerHTML="";
+    if(typeof QRCode==="undefined"){
+        box.textContent="QR code could not load. Check your internet connection and refresh.";
+    }else{
+        const link="upi://pay?pa="+MERCHANT_UPI+"&pn=ParkWise&am="+info.price+"&cu=INR&tn="+encodeURIComponent("Parking "+info.slot);
+        new QRCode(box,{text:link,width:190,height:190});
+    }
+
+    clearInterval(holdTimer);
+    tickHold();
+    holdTimer=setInterval(tickHold,1000);
+    openModal("payModal");
+}
+
+function tickHold(){
+    if(!payInfo) return;
+    const left=Math.max(0,Math.floor((payInfo.holdEnd-Date.now())/1000));
+    $("holdTimer").textContent=Math.floor(left/60)+":"+String(left%60).padStart(2,"0");
+    if(left===0){
+        closePay();
+        toast("Payment time expired. The slot was released.",true);
+        loadSlots();
+    }
+}
+
+function closePay(){
+    clearInterval(holdTimer);
+    payInfo=null;
+    closeModal("payModal");
+}
+
+async function payNow(){
+    if(!payInfo) return;
+    $("paidBtn").disabled=true;
+    $("payMessage").textContent="";
+    try{
+        const result=await api("/api/pay",{method:"POST",body:JSON.stringify({slot:payInfo.slot,method:"qr"})});
+        clearInterval(holdTimer);
+        window.location.href="/receipt/"+result.receipt.reservation_id;
+    }catch(e){
+        $("payMessage").textContent=e.message;
+        $("paidBtn").disabled=false;
+        await loadSlots();
+    }
+}
+
+async function cancelPending(){
+    if(!payInfo) return;
+    if(!confirm("Cancel this booking?")) return;
+    try{
+        await api("/api/cancel",{method:"POST",body:JSON.stringify({slot:payInfo.slot})});
+        closePay();
+        toast("Booking cancelled.");
+        await loadSlots();
+    }catch(e){
+        $("payMessage").textContent=e.message;
+    }
+}
+
+/* ---------- MY RESERVATIONS (ACTIVE) ---------- */
+function timeLeft(ms){
+    const diff=ms-Date.now();
+    if(!ms||diff<=0) return "ended";
+    const h=Math.floor(diff/3600000), m=Math.floor(diff%3600000/60000);
+    return h+"h "+m+"m";
+}
+
+function renderReservations(){
+    const list=$("reservationList");
+    if(!currentUser){
+        list.innerHTML='<p class="panel-subtitle" style="margin-top:10px">Login to view your bookings.</p>';
+        return;
+    }
+    const mine=slots.filter(s=>s.mine&&s.status==="reserved");
+    if(!mine.length){
+        list.innerHTML='<p class="panel-subtitle" style="margin-top:10px">No active reservations.</p>';
+        return;
+    }
+    list.innerHTML="";
+
+    mine.forEach(slot=>{
+        const pending=slot.pay_status==="pending";
+        const item=document.createElement("div");
+        item.className="reservation-item";
+
+        const when=pending
+            ? "Pay before: "+(slot.hold_end_ms?new Date(slot.hold_end_ms).toLocaleTimeString():"-")
+            : "Time left: "+timeLeft(slot.end_ms)+" (until "+(slot.end_ms?new Date(slot.end_ms).toLocaleString():"-")+")";
+
+        item.innerHTML=`<strong>Parking Slot: ${esc(slot.id)}</strong>
+            <div>Vehicle: ${esc(slot.vehicle||"-")}</div>
+            <div>Price: ₹${slot.price||0}</div>
+            <div>Status: ${pending?'<span class="tag pending">Awaiting payment</span>':'<span class="tag active">Active - paid</span>'}</div>
+            <div>${when}</div>`;
+
+        if(pending){
+            const pay=document.createElement("button");
+            pay.className="pay-btn";
+            pay.textContent="Pay now";
+            pay.onclick=()=>startPayment({slot:slot.id,price:slot.price,holdEnd:slot.hold_end_ms});
+            item.appendChild(pay);
+        }else if(slot.res_id){
+            const a=document.createElement("a");
+            a.className="receipt-link";
+            a.href="/receipt/"+slot.res_id;
+            a.textContent="View receipt";
+            item.appendChild(a);
+        }
+
+        const cancel=document.createElement("button");
+        cancel.className="cancel-btn";
+        cancel.textContent="Cancel Reservation";
+        cancel.onclick=()=>cancelReservation(slot.id);
+        item.appendChild(cancel);
+
+        list.appendChild(item);
+    });
+}
+
+async function cancelReservation(slotId){
+    if(!confirm("Are you sure you want to cancel this reservation?")) return;
+    try{
+        const result=await api("/api/cancel",{method:"POST",body:JSON.stringify({slot:slotId})});
+        toast(result.refunded?"Reservation cancelled. Your payment has been refunded.":"Reservation cancelled.");
+        await loadSlots();
+    }catch(e){
+        toast(e.message,true);
+        await loadSlots();
+    }
+}
+
+/* ---------- BOOKING HISTORY ---------- */
+async function loadHistory(){
+    if(!currentUser){
+        myHist=null;
+        renderHistory();
+        renderSpent();
+        return;
+    }
+    try{
+        myHist=await api("/api/my/bookings");
+    }catch(e){
+        myHist=null;
+    }
+    renderHistory();
+    renderSpent();
+}
+
+function renderHistory(){
+    const box=$("historyBox");
+    if(!currentUser){
+        box.innerHTML='<p class="panel-subtitle">Login to view your booking history.</p>';
+        return;
+    }
+    if(!myHist){
+        box.innerHTML='<p class="panel-subtitle">Loading...</p>';
+        return;
+    }
+    const f=$("histFilter").value;
+    const items=myHist.items.filter(x=>!f||x.status===f);
+    if(!items.length){
+        box.innerHTML='<p class="panel-subtitle">No bookings found.</p>';
+        return;
+    }
+    box.innerHTML='<div class="tblwrap"><table class="tbl"><thead><tr><th>#</th><th>Date</th><th>Slot</th><th>Vehicle</th><th>Duration</th><th>Amount</th><th>Status</th><th>Payment</th><th>Receipt</th></tr></thead><tbody>'+
+        items.map(x=>{
+            const hasReceipt=x.payment_status==="paid"||x.payment_status==="refunded";
+            return `<tr>
+                <td>${x.id}</td>
+                <td>${x.start_time?new Date(x.start_time*1000).toLocaleString():"-"}</td>
+                <td>${esc(x.slot)}</td>
+                <td>${esc(x.vehicle)}</td>
+                <td>${x.hours?x.hours+(x.hours===1?" hour":" hours"):"-"}</td>
+                <td>₹${x.price||0}</td>
+                <td><span class="tag ${esc(x.status)}">${esc(STATUS_LABEL[x.status]||x.status)}</span></td>
+                <td><span class="tag ${esc(x.payment_status||"none")}">${esc(PAY_LABEL[x.payment_status]||"-")}</span></td>
+                <td>${hasReceipt?`<a href="/receipt/${x.id}" style="font-weight:600">View</a>`:"-"}</td>
+            </tr>`;
+        }).join("")+'</tbody></table></div>';
+}
+
+/* ---------- KEYBOARD & MISC ---------- */
+["loginUsername","loginPassword"].forEach(id=>{
+    $(id).addEventListener("keydown",e=>{if(e.key==="Enter") submitAuth()});
+});
+$("vehicleNumber").addEventListener("keydown",e=>{if(e.key==="Enter") reserveSlot()});
+
+document.addEventListener("keydown",e=>{
+    if(e.key!=="Escape") return;
+    closeModal("loginModal");
+    closeModal("bookingModal");
+    if($("payModal").style.display==="flex") closePay();
+    closeMenu();
+});
+
+window.onclick=function(event){
+    if(event.target.classList.contains("modal")){
+        if(event.target.id==="payModal") closePay();
+        else event.target.style.display="none";
+    }
+};
+
+async function initialize(){
+    applyThemeIcon();
+    showSkeleton();
+    await loadConfig();
+    await loadCurrentUser();
+    await loadSlots();
+    setInterval(loadSlots,15000);
+}
+initialize();
+</script>
+</body>
+</html>
